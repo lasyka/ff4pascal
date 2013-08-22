@@ -1,4 +1,3 @@
 ff4pascal
 =========
-
-ffmpeg for pascal
+This project aim to provide a  pascal ffmpeg library.
