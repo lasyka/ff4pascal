@@ -34,6 +34,12 @@ contains
   ctypes in 'ctypes.pas',
   ffmpeg in 'ffmpeg.pas',
   cmdutils in 'cmdutils.pas',
-  avcodec in 'libavcodec\avcodec.pas';
+  avcodec in 'libavcodec\avcodec.pas',
+  common in 'libavutil\common.pas',
+  dict in 'libavutil\dict.pas',
+  ffmpegconf in 'ffmpegconf.pas',
+  swscale_internal in 'libswscale\swscale_internal.pas',
+  pixfmt in 'libavutil\pixfmt.pas',
+  avutil in 'libavutil\avutil.pas';
 
 end.

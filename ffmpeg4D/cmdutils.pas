@@ -1,9 +1,21 @@
 unit cmdutils;
 
+{$IFDEF FPC}
+  {$MODE DELPHI }
+  {$PACKENUM 4}    (* use 4-byte enums *)
+  {$PACKRECORDS C} (* C/C++-compatible record packing *)
+{$ELSE}
+  {$MINENUMSIZE 4} (* use 4-byte enums *)
+{$ENDIF}
+
+{$IFDEF DARWIN}
+  {$linklib libavcodec}
+{$ENDIF}
+
 interface
 
 uses
-  ctypes;
+  ctypes,dict,swscale_internal,pixfmt,avcodec;
 
 const
   HAS_ARG = $0001;
@@ -147,6 +159,7 @@ type
     cur_group: OptionGroup;
   end;
 
+  PPFrameBuffer=^PFrameBuffer;
   PFrameBuffer=^FrameBuffer;
   FrameBuffer = record
     base: array [0 .. 3] of pcuint8;
@@ -167,15 +180,15 @@ type
   TCmdUtil = class
   protected
   // program name, defined by the program for show_version().*)
-    const
+
     program_name: array of cchar;
 
     // program birth year, defined by the program for show_banner()
-  const
+
     program_birth_year: cint;
 
     // this year, defined by the program for show_banner()
-  const
+
     this_year: cint;
     avcodec_opts: array [0 .. AVMEDIA_TYPE_NB - 1] of PAVCodecContext;
     avformat_opts: PAVFormatContext;

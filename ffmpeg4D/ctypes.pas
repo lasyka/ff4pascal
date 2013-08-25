@@ -17,6 +17,18 @@
 
 unit ctypes;
 
+{$IFDEF FPC}
+  {$MODE DELPHI }
+  {$PACKENUM 4}    (* use 4-byte enums *)
+  {$PACKRECORDS C} (* C/C++-compatible record packing *)
+{$ELSE}
+  {$MINENUMSIZE 4} (* use 4-byte enums *)
+{$ENDIF}
+
+{$IFDEF DARWIN}
+  {$linklib libavcodec}
+{$ENDIF}
+
 interface
 
 type
@@ -69,6 +81,7 @@ type
   clongdouble            = extended;           pclongdouble           = ^clongdouble;
 
   ppcchar                =^pcchar;
+  ppcint16               =^pcint16;
 implementation
 
 end.

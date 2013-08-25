@@ -1,0 +1,7 @@
+1. libavutil/common.h 的完整翻译
+2. libswscale/swscale_internal.h的完整翻译
+3.avcodec.pas 
+ //  AV_CODEC_ID_PCM_S24LE_PLANAR = MKBETAG(24, 'P', 'S', 'P'),
+//  AV_CODEC_ID_PCM_S32LE_PLANAR = MKBETAG(32, 'P', 'S', 'P'),
+//  AV_CODEC_ID_PCM_S16BE_PLANAR = MKBETAG('P', 'S', 'P', 16),
+这些代码没有翻译
