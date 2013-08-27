@@ -14,7 +14,7 @@ unit avcodec;
 interface
 
 uses
-  ctypes, common, ffmpegconf;
+  ctypes, common, ffmpegconf, avutil,rational,dict;
 
 (* *
   * @defgroup libavc Encoding/Decoding Library
@@ -944,6 +944,8 @@ Type
     quality_factor: cfloat;
   end;
 
+  PAVPanScan=^AVPanScan;
+
   (* *
     * Pan Scan area.
     * This specifies the area which should be displayed.
@@ -1073,6 +1075,8 @@ Type
     avtype: AVPacketSideDataType;
   end;
 
+  PAVPacket=^AVPacket;
+
   PDestructFunc = procedure(avp: PAVPacket);
 
   (* *
@@ -1167,7 +1171,7 @@ Type
 
   PMotionArry = ^MotionArry;
   MotionArry = array [0 .. 1] of cint16;
-
+    PAVCodecContext = ^AVCodecContext;
   (* *
     * This structure describes decoded (raw) audio or video data.
     *
@@ -1591,7 +1595,7 @@ Type
 
   PAVFrame = ^AVFrame;
 
-  PAVCodecContext = ^AVCodecContext;
+
 
   AVFieldOrder = (AV_FIELD_UNKNOWN, AV_FIELD_PROGRESSIVE, AV_FIELD_TT,
     // < Top coded_first, top displayed first
@@ -1600,64 +1604,7 @@ Type
     AV_FIELD_BT // < Bottom coded first, top displayed first
     );
 
-  PDrawHorizBandFunc = procedure(s: PAVCodecContext; src: PAVFrame;
-    offset: array [0 .. AV_NUM_DATA_POINTERS - 1] of cint; y: cint; atype: cint;
-    height: cint);
 
-  PGetFormatFunc = function(s: PAVCodecContext; fmt: PAVPixelFormat)
-    : AVPixelFormat;
-
-  PGetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
-  PReleaseBufferFunc = procedure(c: PAVCodecContext; pic: PAVFrame);
-  PRegetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
-  PRtpCallbackFunc = procedure(avctx: PAVCodecContext; data: Pointer;
-    asize: cint; mb_nb: cint);
-  PExecArgFunc = function(c2: PAVCodecContext; arg: Pointer): cint;
-  PExecuteFunc = function(c: PAVCodecContext; func: PExecArgFunc; arg2: Pointer;
-    ret: pcint; count: cint; asize: cint): cint;
-  PExec2ArgFunc = function(c2: PAVCodecContext; arg: Pointer; jobnr: cint;
-    threadnr: cint): cint;
-  PExecute2Func = function(c: PAVCodecContext; func: PExec2ArgFunc;
-    arg2: Pointer; ret: pcint; count: cint): cint;
-
-  PInitStaticDataProc = procedure(codec: PAVCodec);
-  PUpdateThreadContextFunc = function(dst: PAVCodecContext;
-    src: PAVCodecContext): cint;
-  PInitThreadCopyFunc = function(avctx: PAVCodecContext): cint;
-  PInitFunc = function(avctx: PAVCodecContext): cint;
-  PEncodeSubFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cint; sub: PAVSubtitle): cint;
-
-  PEncode2Func = function(avctx: PAVCodecContext; avpkt: PAVPacket;
-    frame: PAVFrame; got_packet_ptr: pcint): cint;
-  PdecodeFunc = function(avctx: PAVCodecContext; outdata: Pointer;
-    outdata_size: pcint; avpkt: PAVPacket): cint;
-  PCloseFunc = function(avctx: PAVCodecContext): cint;
-  PFlushProc = procedure(avctx: PAVCodecContext);
-  PEndFrameFunc = function(avctx: PAVCodecContext): cint;
-
-  PDecodeSliceFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cuint32): cint;
-  PStartFrameFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cuint32): cint;
-
-  PAvLockmgrRegCbFunc = function(mutex: array of Pointer; op AVLockOp): cint;
-
-  PFilterFunc = function(bsfc: PAVBitStreamFilterContext;
-    avctx: PAVCodecContext; args: pcchar; poutbuf: array of pcuint8;
-    poutbuf_size: pcint; buf: pcuint8; buf_size: cint; keyframe: cint): cint;
-  PCloseProc = procedure(bsfc: PAVBitStreamFilterContext);
-
-  PParserInitFunc = function(s: PAVCodecParserContext): cint;
-  PParserParseFunc = function(s: PAVCodecParserContext; avctx: PAVCodecContext;
-    poutbuf: ppcuint8; poutbuf_size: pcint; buf: pcuint8; buf_size: cint): cint;
-  PParserCloseProc = procedure(s: PAVCodecParserContext);
-  PSplitFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cint;): cint;
-
-  PAvcodecDefault2ArgFunc = function(c2: PAVCodecContext; arg2: Pointer;
-    a1: cint; a2: cint): cint;
-  PAvcodecDefaultArgFunc = function(c2: PAVCodecContext; arg2: Pointer): cint;
 
   (* *
     * main external API structure.
@@ -3634,6 +3581,65 @@ end;
   AV_LOCK_DESTROY
   /// < Free mutex resources
   );
+
+   PDrawHorizBandFunc = procedure(s: PAVCodecContext; src: PAVFrame;
+    offset: array [0 .. AV_NUM_DATA_POINTERS - 1] of cint; y: cint; atype: cint;
+    height: cint);
+
+  PGetFormatFunc = function(s: PAVCodecContext; fmt: PAVPixelFormat)
+    : AVPixelFormat;
+
+  PGetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
+  PReleaseBufferFunc = procedure(c: PAVCodecContext; pic: PAVFrame);
+  PRegetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
+  PRtpCallbackFunc = procedure(avctx: PAVCodecContext; data: Pointer;
+    asize: cint; mb_nb: cint);
+  PExecArgFunc = function(c2: PAVCodecContext; arg: Pointer): cint;
+  PExecuteFunc = function(c: PAVCodecContext; func: PExecArgFunc; arg2: Pointer;
+    ret: pcint; count: cint; asize: cint): cint;
+  PExec2ArgFunc = function(c2: PAVCodecContext; arg: Pointer; jobnr: cint;
+    threadnr: cint): cint;
+  PExecute2Func = function(c: PAVCodecContext; func: PExec2ArgFunc;
+    arg2: Pointer; ret: pcint; count: cint): cint;
+
+  PInitStaticDataProc = procedure(codec: PAVCodec);
+  PUpdateThreadContextFunc = function(dst: PAVCodecContext;
+    src: PAVCodecContext): cint;
+  PInitThreadCopyFunc = function(avctx: PAVCodecContext): cint;
+  PInitFunc = function(avctx: PAVCodecContext): cint;
+  PEncodeSubFunc = function(avctx: PAVCodecContext; buf: pcuint8;
+    buf_size: cint; sub: PAVSubtitle): cint;
+
+  PEncode2Func = function(avctx: PAVCodecContext; avpkt: PAVPacket;
+    frame: PAVFrame; got_packet_ptr: pcint): cint;
+  PdecodeFunc = function(avctx: PAVCodecContext; outdata: Pointer;
+    outdata_size: pcint; avpkt: PAVPacket): cint;
+  PCloseFunc = function(avctx: PAVCodecContext): cint;
+  PFlushProc = procedure(avctx: PAVCodecContext);
+  PEndFrameFunc = function(avctx: PAVCodecContext): cint;
+
+  PDecodeSliceFunc = function(avctx: PAVCodecContext; buf: pcuint8;
+    buf_size: cuint32): cint;
+  PStartFrameFunc = function(avctx: PAVCodecContext; buf: pcuint8;
+    buf_size: cuint32): cint;
+
+  PAvLockmgrRegCbFunc = function(mutex: array of Pointer; op AVLockOp): cint;
+
+  PFilterFunc = function(bsfc: PAVBitStreamFilterContext;
+    avctx: PAVCodecContext; args: pcchar; poutbuf: array of pcuint8;
+    poutbuf_size: pcint; buf: pcuint8; buf_size: cint; keyframe: cint): cint;
+  PCloseProc = procedure(bsfc: PAVBitStreamFilterContext);
+
+  PParserInitFunc = function(s: PAVCodecParserContext): cint;
+  PParserParseFunc = function(s: PAVCodecParserContext; avctx: PAVCodecContext;
+    poutbuf: ppcuint8; poutbuf_size: pcint; buf: pcuint8; buf_size: cint): cint;
+  PParserCloseProc = procedure(s: PAVCodecParserContext);
+  PSplitFunc = function(avctx: PAVCodecContext; buf: pcuint8;
+    buf_size: cint;): cint;
+
+  PAvcodecDefault2ArgFunc = function(c2: PAVCodecContext; arg2: Pointer;
+    a1: cint; a2: cint): cint;
+  PAvcodecDefaultArgFunc = function(c2: PAVCodecContext; arg2: Pointer): cint;
 
 {$I avcodec_imports.inc}
   implementation
