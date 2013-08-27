@@ -14,7 +14,7 @@ unit avutil;
 interface
 
 uses
-  ctypes;
+  ctypes,ffmpegconf,rational;
 (*
   * @file
   * external API header
@@ -150,7 +150,8 @@ const
   *)
 
 Type
-  AVMediaType = (AVMEDIA_TYPE_UNKNOWN = -1,
+  AVMediaType = (
+    AVMEDIA_TYPE_UNKNOWN = -1,
     /// < Usually treated as AVMEDIA_TYPE_DATA
     AVMEDIA_TYPE_VIDEO, AVMEDIA_TYPE_AUDIO, AVMEDIA_TYPE_DATA,
     /// < Opaque data information usually continuous
@@ -178,7 +179,8 @@ Type
     * @{
   *)
 
-  AVPictureType = (AV_PICTURE_TYPE_NONE = 0,
+  AVPictureType = (
+    AV_PICTURE_TYPE_NONE = 0,
     /// < Undefined
     AV_PICTURE_TYPE_I,
     /// < Intra
@@ -194,15 +196,12 @@ Type
     /// < Switching Predicted
     AV_PICTURE_TYPE_BI
     /// < BI type
-    );
+   );
 
 (*
-    * Return the LIBAVUTIL_VERSION_INT constant.
+  Return the LIBAVUTIL_VERSION_INT constant.
 *)
-function avutil_version;
-cuint;
-cdecl;
-external av__util;
+function avutil_version(): cuint;cdecl; external av__util;
 
 (* *
   * Return the libavutil build-time configuration.
@@ -256,7 +255,9 @@ implementation
 
 function AV_TIME_BASE_Q: AVRational;
 begin
-  Result = AVRational(1, AV_TIME_BASE);
+ /// Result := AVRational(1, AV_TIME_BASE);
+  Result.num:=1;
+  Result.den:=AV_TIME_BASE;
 end;
 
 end.

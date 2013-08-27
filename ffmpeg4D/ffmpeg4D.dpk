@@ -40,6 +40,8 @@ contains
   ffmpegconf in 'ffmpegconf.pas',
   swscale_internal in 'libswscale\swscale_internal.pas',
   pixfmt in 'libavutil\pixfmt.pas',
-  avutil in 'libavutil\avutil.pas';
+  avutil in 'libavutil\avutil.pas',
+  rational in 'libavutil\rational.pas',
+  avutil.log in 'libavutil\avutil.log.pas';
 
 end.
