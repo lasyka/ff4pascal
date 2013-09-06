@@ -398,7 +398,7 @@ implementation
 
   function  MKBETAG(a,b,c,d:cchar):cint64;
   begin
-    Result:=(cint8(d) OR (cint8(c) shl 8) Or (cint8(b) shl 16) OR (cuint(a) shl 24));
+    Result:=(ord(d) OR (ord(c) shl 8) Or (ord(b) shl 16) OR (cuint8(ord(a)) shl 24));
   end;
 
 end.

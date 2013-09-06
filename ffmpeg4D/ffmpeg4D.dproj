@@ -85,7 +85,8 @@
         <DCCReference Include="libavutil\pixfmt.pas"/>
         <DCCReference Include="libavutil\avutil.pas"/>
         <DCCReference Include="libavutil\rational.pas"/>
-        <DCCReference Include="libavutil\avutil.log.pas"/>
+        <DCCReference Include="libavutil\avutil.opt.pas"/>
+        <DCCReference Include="libavutil\avutil.samplefmt.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

@@ -14,7 +14,7 @@ unit avcodec;
 interface
 
 uses
-  ctypes, common, ffmpegconf, avutil,rational,dict,avutil.log;
+  ctypes, common, ffmpegconf, avutil, rational, dict, avutil.opt,pixfmt,avutil.samplefmt;
 
 (* *
   * @defgroup libavc Encoding/Decoding Library
@@ -560,7 +560,16 @@ CONST
   FF_LOSS_COLORQUANT = $0010; (* *< loss due to color quantization *)
   FF_LOSS_CHROMA = $0020; (* *< loss of chroma (e.g. RGB to gray conversion) *)
 
+ //todo AVCOL_SPC_YCGCO = AVCOL_SPC_YCOCG;
+
+  // internal.h
+  FF_SANE_NB_CHANNELS: cuint = 128;
+
+  // end internal.h
+
 Type
+
+   PAVCodec=^TAVCodec;
   (* *
     * @defgroup lavc_core Core functions/structures.
     * @ingroup libavc
@@ -737,9 +746,9 @@ Type
     AV_CODEC_ID_COMFORT_NOISE, AV_CODEC_ID_TAK_DEPRECATED,
 
     // AV_CODEC_ID_FFWAVESYNTH = MKBETAG('F', 'F','W', 'S'),
-{$IF LIBAVCODEC_VERSION_MAJOR <= 54}
+    // {$IF LIBAVCODEC_VERSION_MAJOR <= 54}
     // AV_CODEC_ID_8SVX_RAW = MKBETAG('8', 'S', 'V', 'X'),
-{$IFEND}
+    // {$ENDIF}
     // AV_CODEC_ID_SONIC = MKBETAG('S', 'O', 'N', 'C'),
     // AV_CODEC_ID_SONIC_LS = MKBETAG('S', 'O', 'N', 'L'),
     // AV_CODEC_ID_PAF_AUDIO = MKBETAG('P', 'A', 'F', 'A'),
@@ -791,7 +800,7 @@ Type
     AV_CODEC_ID_FFMETADATA = $21000
     /// < Dummy codec for streams containing only metadata information.
 {$IF FF_API_CODEC_ID }
-    , {$I "old_codec_ids.inc"}
+    , {$I old_codec_ids.inc}
 {$ENDIF}
   );
 
@@ -799,6 +808,7 @@ Type
   CodecID = AVCodecID;
 {$IFEND}
 
+PAVCodecDescriptor=^AVCodecDescriptor;
   (* *
     * This struct describes the properties of a single codec described by an
     * AVCodecID.
@@ -897,7 +907,6 @@ Type
     /// < Not part of ABI
     );
 
-
   AVColorRange = (AVCOL_RANGE_UNSPECIFIED = 0, AVCOL_RANGE_MPEG = 1,
     /// < the normal 219*2^(n-8) "MPEG" YUV ranges
     AVCOL_RANGE_JPEG = 2,
@@ -932,6 +941,7 @@ Type
     /// < Not part of ABI
     );
 
+  PRcOverride=^RcOverride;
   (* *
     * @ingroup lavc_encoding
   *)
@@ -943,8 +953,7 @@ Type
     quality_factor: cfloat;
   end;
 
-  PAVPanScan=^AVPanScan;
-
+  PAVPanScan = ^AVPanScan;
   (* *
     * Pan Scan area.
     * This specifies the area which should be displayed.
@@ -1074,7 +1083,8 @@ Type
     avtype: AVPacketSideDataType;
   end;
 
-  PAVPacket=^AVPacket;
+  PAVPacket = ^AVPacket;
+  PAVHWAccel=^AVHWAccel;
 
   PDestructFunc = procedure(avp: PAVPacket);
 
@@ -1170,7 +1180,8 @@ Type
 
   PMotionArry = ^MotionArry;
   MotionArry = array [0 .. 1] of cint16;
-    PAVCodecContext = ^AVCodecContext;
+  PAVCodecContext = ^AVCodecContext;
+
   (* *
     * This structure describes decoded (raw) audio or video data.
     *
@@ -1589,12 +1600,11 @@ Type
     pkt_size: cint;
   end;
 
+  PAVCodecInternal=^AVCodecInternal;
   AVCodecInternal = record
   end;
 
   PAVFrame = ^AVFrame;
-
-
 
   AVFieldOrder = (AV_FIELD_UNKNOWN, AV_FIELD_PROGRESSIVE, AV_FIELD_TT,
     // < Top coded_first, top displayed first
@@ -1603,7 +1613,16 @@ Type
     AV_FIELD_BT // < Bottom coded first, top displayed first
     );
 
-
+  PDrawHorizBandFunc = procedure(s: PAVCodecContext; src: PAVFrame; offset: array{[0 .. (AV_NUM_DATA_POINTERS - 1)]} of cint; y: cint; atype: cint;height: cint);
+  PGetFormatFunc = function(s: PAVCodecContext; fmt: PAVPixelFormat): AVPixelFormat;
+  PGetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
+  PReleaseBufferFunc = procedure(c: PAVCodecContext; pic: PAVFrame);
+  PRegetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
+  PRtpCallbackFunc = procedure(avctx: PAVCodecContext; data: Pointer;asize: cint; mb_nb: cint);
+  PExecArgFunc = function(c2: PAVCodecContext;arg: Pointer): cint;
+  PExecuteFunc = function(c: PAVCodecContext;func: PExecArgFunc; arg2: Pointer; ret: pcint; count: cint;asize: cint): cint;
+  PExec2ArgFunc = function(c2: PAVCodecContext; arg: Pointer; jobnr: cint; threadnr: cint): cint;
+  PExecute2Func = function(c: PAVCodecContext; func: PExec2ArgFunc;arg2: Pointer; ret: pcint; count: cint): cint;
 
   (* *
     * main external API structure.
@@ -2395,7 +2414,7 @@ Type
     *)
     cutoff: cint;
 
-{$IF FF_API_REQUEST_CHANNELS
+{$IF FF_API_REQUEST_CHANNELS}
   (**
   * Decoder should decode to this many channels if it can (0 for default)
   * - encoding: unused
@@ -2409,14 +2428,14 @@ Type
       * - encoding: set by user.
       * - decoding: set by user, may be overwritten by libavcodec.
     *)
-    uint64_t channel_layout: cuint64;
+    channel_layout: cuint64;
 
     (* *
       * Request decoder to use this channel layout if it can (0 for default)
       * - encoding: unused
       * - decoding: Set by user.
     *)
-    uint64_t request_channel_layout: cuint64;
+     request_channel_layout: cuint64;
 
     (* *
       * Type of service that the audio stream conveys.
@@ -2704,7 +2723,7 @@ Type
       * - encoding: Set by user, in non drop frame format
       * - decoding: Set by libavcodec (timecode in the 25 bits format, -1 if unset)
     *)
-    int64_t timecode_frame_start: cint64;
+     timecode_frame_start: cint64;
 
     (* The RTP callback: This function is called *)
     (* every time the encoder has a packet to send. *)
@@ -2812,7 +2831,7 @@ Type
       * - encoding: unused
       * - decoding: Set by user.
     *)
-    int64_t reordered_opaque: cint64;
+     reordered_opaque: cint64;
 
     (* *
       * Hardware accelerator in use
@@ -3096,6 +3115,7 @@ Type
 
   end;
 
+  PAVProfile=^AVProfile;
   (* *
     * AVProfile.
   *)
@@ -3105,14 +3125,29 @@ Type
     /// < short name for the profile
   end;
 
-  // typedef struct AVCodecDefault AVCodecDefault;
+   PAVCodecDefault=^AVCodecDefault;
+   AVCodecDefault = record
+    key:pcuint8;
+    value:pcuint8;
+   end;
 
-  // struct AVSubtitle;
+  PAVSubtitle=^AVSubtitle;
+
+  PInitStaticDataProc = procedure(codec: PAVCodec);
+  PUpdateThreadContextFunc = function(dst: PAVCodecContext;src: PAVCodecContext): cint;
+  PInitThreadCopyFunc = function(avctx: PAVCodecContext): cint;
+  PInitFunc = function(avctx: PAVCodecContext): cint;
+  PEncodeSubFunc = function(avctx: PAVCodecContext; buf: pcuint8;buf_size: cint; sub: PAVSubtitle): cint;
+  PEncode2Func = function(avctx: PAVCodecContext; avpkt: PAVPacket;frame: PAVFrame; got_packet_ptr: pcint): cint;
+  PdecodeFunc = function(avctx: PAVCodecContext; outdata: Pointer;outdata_size: pcint; avpkt: PAVPacket): cint;
+  PCloseFunc = function(avctx: PAVCodecContext): cint;
+  PFlushProc = procedure(avctx: PAVCodecContext);
+  PEndFrameFunc = function(avctx: PAVCodecContext): cint;
 
   (* *
     * AVCodec.
   *)
-  avcodec = record
+  TAVCodec = record
     (* *
       * Name of the codec implementation.
       * The name is globally unique among encoders and among decoders (but an
@@ -3188,7 +3223,7 @@ Type
     (* *
       * Initialize codec static data, called from avcodec_register().
     *)
-    init_static_data: PInitStaticDataFunc;
+    init_static_data: PInitStaticDataProc;
 
     init: PInitFunc;
     encode_sub: PEncodeSubFunc;
@@ -3214,6 +3249,9 @@ Type
 
   end;
 
+
+  PDecodeSliceFunc = function(avctx: PAVCodecContext; buf: pcuint8;buf_size: cuint32): cint;
+  PStartFrameFunc = function(avctx: PAVCodecContext;buf: pcuint8; buf_size: cuint32): cint;
   (* *
     * AVHWAccel.
   *)
@@ -3305,6 +3343,7 @@ Type
 
   end;
 
+  PAVPicture=^AVPicture;
   (* *
     * @defgroup lavc_picture AVPicture
     *
@@ -3320,7 +3359,7 @@ Type
     data: array [0 .. AV_NUM_DATA_POINTERS - 1] of pcuint8;
     linesize: array [0 .. AV_NUM_DATA_POINTERS - 1] of cint;
     /// < number of bytes per line
-  end
+  end;
 
   (* *
     * @}
@@ -3341,8 +3380,9 @@ Type
     * Formatted text, the ass field must be set by the decoder and is
     * authoritative. pict and text fields may contain approximations.
   *)
-  SUBTITLE_ASS };
+  SUBTITLE_ASS );
 
+  PAVSubtitleRect=^AVSubtitleRect;
   AVSubtitleRect = record x: cint;
   /// < top left corner  of pict, undefined when pict is not set
   y: cint;
@@ -3370,14 +3410,24 @@ Type
   *)
   ass: pcchar;
 
-  flags: cint; end;
+  flags: cint;
+ end;
 
-  AVSubtitle = record format: cuint16; (* 0 = graphics *)
+ AVSubtitle = record
+  format: cuint16; (* 0 = graphics *)
   start_display_time: cuint32; (* relative to packet pts, in ms *)
   end_display_time: cuint32; (* relative to packet pts, in ms *)
-  num_rects: cuint; rects: PPAVSubtitleRect; pts: cint64;
+  num_rects: cuint;
+  rects: array of PAVSubtitleRect;
+  pts: cint64;
   /// < Same as packet pts, in AV_TIME_BASE
 end;
+ PAVCodecParser=^AVCodecParser;
+PAVCodecParserContext=^AVCodecParserContext;
+PParserInitFunc = function(s: PAVCodecParserContext): cint;
+  PParserParseFunc = function(s: PAVCodecParserContext; avctx: PAVCodecContext;poutbuf: array of pcuint8; poutbuf_size: pcint; buf: pcuint8; buf_size: cint): cint;
+  PParserCloseProc = procedure(s: PAVCodecParserContext);
+  PSplitFunc = function(avctx: PAVCodecContext; buf: pcuint8;buf_size: cint): cint;
 
   (* *
     * @defgroup lavc_parsing Frame parsing
@@ -3510,11 +3560,12 @@ end;
   *)
   duration: cint; end;
 
+
   AVCodecParser = record codec_ids: array [0 .. 4] of cint;
   (* several codec IDs are permitted *)
   priv_data_size: cint; parser_init: PParserInitFunc;
   parser_parse: PParserParseFunc; parser_close: PParserCloseProc;
-  split: PSplitFunc; next: PAVCodercParser; end;
+  split: PSplitFunc; next: PAVCodecParser; end;
 
   (* *
     * @}
@@ -3560,10 +3611,15 @@ end;
     * Functions for working with pixel formats.
     * @{
   *)
-
+  PAVBitStreamFilter=^AVBitStreamFilter;
+  PAVBitStreamFilterContext=^AVBitStreamFilterContext;
   AVBitStreamFilterContext = record priv_data: Pointer;
   filter: PAVBitStreamFilter; parser: PAVCodecParserContext;
   next: PAVBitStreamFilterContext; end;
+
+  PFilterFunc = function(bsfc: PAVBitStreamFilterContext;avctx: PAVCodecContext; args: pcchar; poutbuf: array of pcuint8;
+                  poutbuf_size: pcint; buf: pcuint8; buf_size: cint; keyframe: cint): cint;
+  PCloseProc = procedure(bsfc: PAVBitStreamFilterContext);
 
   AVBitStreamFilter = record name: pcchar; priv_data_size: cint;
   filter: PFilterFunc; close: PCloseProc; next: PAVBitStreamFilter; end;
@@ -3581,70 +3637,33 @@ end;
   /// < Free mutex resources
   );
 
-   PDrawHorizBandFunc = procedure(s: PAVCodecContext; src: PAVFrame;
-    offset: array [0 .. AV_NUM_DATA_POINTERS - 1] of cint; y: cint; atype: cint;
-    height: cint);
+ 
 
-  PGetFormatFunc = function(s: PAVCodecContext; fmt: PAVPixelFormat)
-    : AVPixelFormat;
 
-  PGetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
-  PReleaseBufferFunc = procedure(c: PAVCodecContext; pic: PAVFrame);
-  PRegetBufferFunc = function(c: PAVCodecContext; pic: PAVFrame): cint;
-  PRtpCallbackFunc = procedure(avctx: PAVCodecContext; data: Pointer;
-    asize: cint; mb_nb: cint);
-  PExecArgFunc = function(c2: PAVCodecContext; arg: Pointer): cint;
-  PExecuteFunc = function(c: PAVCodecContext; func: PExecArgFunc; arg2: Pointer;
-    ret: pcint; count: cint; asize: cint): cint;
-  PExec2ArgFunc = function(c2: PAVCodecContext; arg: Pointer; jobnr: cint;
-    threadnr: cint): cint;
-  PExecute2Func = function(c: PAVCodecContext; func: PExec2ArgFunc;
-    arg2: Pointer; ret: pcint; count: cint): cint;
+ 
+  
 
-  PInitStaticDataProc = procedure(codec: PAVCodec);
-  PUpdateThreadContextFunc = function(dst: PAVCodecContext;
-    src: PAVCodecContext): cint;
-  PInitThreadCopyFunc = function(avctx: PAVCodecContext): cint;
-  PInitFunc = function(avctx: PAVCodecContext): cint;
-  PEncodeSubFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cint; sub: PAVSubtitle): cint;
 
-  PEncode2Func = function(avctx: PAVCodecContext; avpkt: PAVPacket;
-    frame: PAVFrame; got_packet_ptr: pcint): cint;
-  PdecodeFunc = function(avctx: PAVCodecContext; outdata: Pointer;
-    outdata_size: pcint; avpkt: PAVPacket): cint;
-  PCloseFunc = function(avctx: PAVCodecContext): cint;
-  PFlushProc = procedure(avctx: PAVCodecContext);
-  PEndFrameFunc = function(avctx: PAVCodecContext): cint;
 
-  PDecodeSliceFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cuint32): cint;
-  PStartFrameFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cuint32): cint;
 
-  PAvLockmgrRegCbFunc = function(mutex: array of Pointer; op AVLockOp): cint;
+  
 
-  PFilterFunc = function(bsfc: PAVBitStreamFilterContext;
-    avctx: PAVCodecContext; args: pcchar; poutbuf: array of pcuint8;
-    poutbuf_size: pcint; buf: pcuint8; buf_size: cint; keyframe: cint): cint;
-  PCloseProc = procedure(bsfc: PAVBitStreamFilterContext);
 
-  PParserInitFunc = function(s: PAVCodecParserContext): cint;
-  PParserParseFunc = function(s: PAVCodecParserContext; avctx: PAVCodecContext;
-    poutbuf: ppcuint8; poutbuf_size: pcint; buf: pcuint8; buf_size: cint): cint;
-  PParserCloseProc = procedure(s: PAVCodecParserContext);
-  PSplitFunc = function(avctx: PAVCodecContext; buf: pcuint8;
-    buf_size: cint;): cint;
+
+  PAvLockmgrRegCbFunc = function(mutex: array of Pointer; op :AVLockOp): cint;
+
+
+
+
+
 
   PAvcodecDefault2ArgFunc = function(c2: PAVCodecContext; arg2: Pointer;
-    a1: cint; a2: cint): cint;
+  a1: cint; a2: cint): cint;
   PAvcodecDefaultArgFunc = function(c2: PAVCodecContext; arg2: Pointer): cint;
 
 {$I avcodec_imports.inc}
 
-var
-   AVCOL_SPC_YCGCO = AVCOL_SPC_YCOCG;
 
-implementation
+  implementation
 
 end.

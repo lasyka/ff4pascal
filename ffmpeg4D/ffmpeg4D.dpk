@@ -42,6 +42,7 @@ contains
   pixfmt in 'libavutil\pixfmt.pas',
   avutil in 'libavutil\avutil.pas',
   rational in 'libavutil\rational.pas',
-  avutil.log in 'libavutil\avutil.log.pas';
+  avutil.opt in 'libavutil\avutil.opt.pas',
+  avutil.samplefmt in 'libavutil\avutil.samplefmt.pas';
 
 end.
