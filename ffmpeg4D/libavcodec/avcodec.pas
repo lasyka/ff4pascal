@@ -568,7 +568,7 @@ CONST
   // end internal.h
 
 Type
-
+   PPAVCodec=^PAVCodec;
    PAVCodec=^TAVCodec;
   (* *
     * @defgroup lavc_core Core functions/structures.

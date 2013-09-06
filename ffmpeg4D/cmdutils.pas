@@ -1,21 +1,20 @@
 unit cmdutils;
 
 {$IFDEF FPC}
-  {$MODE DELPHI }
-  {$PACKENUM 4}    (* use 4-byte enums *)
-  {$PACKRECORDS C} (* C/C++-compatible record packing *)
+{$MODE DELPHI }
+{$PACKENUM 4}    (* use 4-byte enums *)
+{$PACKRECORDS C} (* C/C++-compatible record packing *)
 {$ELSE}
-  {$MINENUMSIZE 4} (* use 4-byte enums *)
+{$MINENUMSIZE 4} (* use 4-byte enums *)
 {$ENDIF}
-
 {$IFDEF DARWIN}
-  {$linklib libavcodec}
+{$linklib libavcodec}
 {$ENDIF}
 
 interface
 
 uses
-  ctypes,dict,swscale_internal,pixfmt,avcodec;
+  ctypes, dict, swscale_internal, pixfmt, avcodec, avutil,avutil.opt, avformat;
 
 const
   HAS_ARG = $0001;
@@ -159,8 +158,9 @@ type
     cur_group: OptionGroup;
   end;
 
-  PPFrameBuffer=^PFrameBuffer;
-  PFrameBuffer=^FrameBuffer;
+  PPFrameBuffer = ^PFrameBuffer;
+  PFrameBuffer = ^FrameBuffer;
+
   FrameBuffer = record
     base: array [0 .. 3] of pcuint8;
     data: array [0 .. 3] of pcuint8;
@@ -179,7 +179,7 @@ type
 
   TCmdUtil = class
   protected
-  // program name, defined by the program for show_version().*)
+    // program name, defined by the program for show_version().*)
 
     program_name: array of cchar;
 
@@ -190,7 +190,7 @@ type
     // this year, defined by the program for show_banner()
 
     this_year: cint;
-    avcodec_opts: array [0 .. AVMEDIA_TYPE_NB - 1] of PAVCodecContext;
+    avcodec_opts: array [0 .. 4 { (AVMEDIA_TYPE_NB - 1) } ] of PAVCodecContext;
     avformat_opts: PAVFormatContext;
     sws_opts: PSwsContext;
     swr_opts: PAVDictionary;
@@ -212,7 +212,7 @@ type
       * Only suitable for opt_help and similar since it lacks prefix handling.
     *)
     procedure log_callback_help(ptr: Pointer; level: cint;
-      fmt: { const } pcchar; vl: va_list);
+      fmt: { const } pcchar; vl: pcchar{va_list});
 
     (* *
       * Fallback for options that are not explicitly handled, these will be
@@ -416,7 +416,7 @@ type
       * cannot be created
     *)
     function setup_find_stream_info_opts(s: PAVFormatContext;
-      codec_opts: PAVDictionary): array of PAVDictionary;
+      codec_opts: PAVDictionary): PPAVDictionary;
 
     (* *
       * Print an error message to stderr, indicating filename and a human
@@ -523,7 +523,7 @@ type
       * Return a positive value if a line read from standard input
       * starts with [yY], otherwise return 0.
     *)
-    function read_yesno;
+    function read_yesno():cint;
 
     (* *
       * Read the file with name filename, and put its content in a newly
@@ -536,7 +536,7 @@ type
       * AVERROR error code in case of failure.
     *)
     function cmdutils_read_file(filename: pcchar; bufptr: array of pcchar;
-      asize: pcuint);
+      asize: pcuint):cint;
 
     (* *
       * Get a file corresponding to a preset file.
@@ -557,7 +557,7 @@ type
       * preset, may be NULL
     *)
     function get_preset_file(filename: pcchar; filename_size: cuint;
-      preset_name: pcchar; is_path: cint; codec_name: pcchar): PFILE;
+      preset_name: pcchar; is_path: cint; codec_name: pcchar): ^FILE;
 
     (* *
       * Realloc array to hold new_size elements of elem_size.
@@ -574,17 +574,17 @@ type
 
     // # define grow_array(array , nb_elems)\
     // array = grow_array(array , sizeof (* array), &nb_elems, nb_elems + 1)
-    function grow_array(aarray: Pointer; elem_size: cint);
+    function grow_array(aarray: Pointer; elem_size: cint):pointer;overload;
 
-  (* *
-    * Get a frame from the pool. This is intended to be used as a callback for
-    * AVCodecContext.get_buffer.
-    *
-    * @param s codec context. s->opaque must be a pointer to the head of the
-    *          buffer pool.
-    * @param frame frame->opaque will be set to point to the FrameBuffer
-    *              containing the frame data.
-  *)
+    (* *
+      * Get a frame from the pool. This is intended to be used as a callback for
+      * AVCodecContext.get_buffer.
+      *
+      * @param s codec context. s->opaque must be a pointer to the head of the
+      *          buffer pool.
+      * @param frame frame->opaque will be set to point to the FrameBuffer
+      *              containing the frame data.
+    *)
     function codec_get_buffer(s: PAVCodecContext; frame: PAVFrame): cint;
 
     (* *
@@ -606,28 +606,27 @@ type
     *)
     procedure free_buffer_pool(pool: PPFrameBuffer);
 
-    {#define GET_PIX_FMT_NAME(pix_fmt)\
-    const char *name = av_get_pix_fmt_name(pix_fmt);}
-    function GET_PIX_FMT_NAME(pix_fmt:AVPixelFormat):pcchar;
-    {#define GET_SAMPLE_FMT_NAME(sample_fmt)\
-    const char *name = av_get_sample_fmt_name(sample_fmt)}
-    function GET_SAMPLE_FMT_NAME( sample_fmt:AVSampleFormat):pcchar;
+    { #define GET_PIX_FMT_NAME(pix_fmt)\
+      const char *name = av_get_pix_fmt_name(pix_fmt); }
+    function GET_PIX_FMT_NAME(pix_fmt: AVPixelFormat): pcchar;
+    { #define GET_SAMPLE_FMT_NAME(sample_fmt)\
+      const char *name = av_get_sample_fmt_name(sample_fmt) }
+    function GET_SAMPLE_FMT_NAME(sample_fmt: AVSampleFormat): pcchar;
     {
-    #define GET_SAMPLE_RATE_NAME(rate)\
-    char name[16];\
-    snprintf(name, sizeof(name), "%d", rate);}
-    procedure GET_SAMPLE_RATE_NAME(rate:cint);
+      #define GET_SAMPLE_RATE_NAME(rate)\
+      char name[16];\
+      snprintf(name, sizeof(name), "%d", rate); }
+    procedure GET_SAMPLE_RATE_NAME(rate: cint);
 
-    {#define GET_CH_LAYOUT_NAME(ch_layout)\
-    char name[16];\
-    snprintf(name, sizeof(name), "0x%"PRIx64, ch_layout);}
-    procedure GET_CH_LAYOUT_NAME(ch_layout:cint64);
+    { #define GET_CH_LAYOUT_NAME(ch_layout)\
+      char name[16];\
+      snprintf(name, sizeof(name), "0x%"PRIx64, ch_layout); }
+    procedure GET_CH_LAYOUT_NAME(ch_layout: cint64);
 
-
-    {#define GET_CH_LAYOUT_DESC(ch_layout)\
-    char name[128];\
-    av_get_channel_layout_string(name, sizeof(name), 0, ch_layout);}
-    procedure GET_CH_LAYOUT_DESC(ch_layout:cint64);
+    { #define GET_CH_LAYOUT_DESC(ch_layout)\
+      char name[128];\
+      av_get_channel_layout_string(name, sizeof(name), 0, ch_layout); }
+    procedure GET_CH_LAYOUT_DESC(ch_layout: cint64);
   end;
 
 implementation

@@ -32,8 +32,6 @@ requires
 
 contains
   ctypes in 'ctypes.pas',
-  ffmpeg in 'ffmpeg.pas',
-  cmdutils in 'cmdutils.pas',
   avcodec in 'libavcodec\avcodec.pas',
   common in 'libavutil\common.pas',
   dict in 'libavutil\dict.pas',
@@ -43,6 +41,10 @@ contains
   avutil in 'libavutil\avutil.pas',
   rational in 'libavutil\rational.pas',
   avutil.opt in 'libavutil\avutil.opt.pas',
-  avutil.samplefmt in 'libavutil\avutil.samplefmt.pas';
+  avutil.samplefmt in 'libavutil\avutil.samplefmt.pas',
+  avformat in 'libavformat\avformat.pas',
+  avio in 'libavformat\avio.pas',
+  avfilter in 'libavfilter\avfilter.pas',
+  avfiltergraph in 'libavfilter\avfiltergraph.pas';
 
 end.

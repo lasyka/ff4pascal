@@ -25,3 +25,11 @@
   LIBSWSCALE_VERSION_MINOR   = 2;
   LIBSWSCALE_VERSION_RELEASE = 100;
 {$IFEND}
+
+{$DEFINE HaveAVFilter}
+{$IF Defined(HaveAVFilter) and Defined(IncludeConstants)}
+  av__filter = 'avfilter-3';
+  LIBAVFILTER_VERSION_MAJOR=  3;
+  LIBAVFILTER_VERSION_MINOR = 42;
+  LIBAVFILTER_VERSION_MICRO= 103;
+{$IFEND}

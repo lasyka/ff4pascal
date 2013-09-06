@@ -75,8 +75,6 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="ctypes.pas"/>
-        <DCCReference Include="ffmpeg.pas"/>
-        <DCCReference Include="cmdutils.pas"/>
         <DCCReference Include="libavcodec\avcodec.pas"/>
         <DCCReference Include="libavutil\common.pas"/>
         <DCCReference Include="libavutil\dict.pas"/>
@@ -87,6 +85,10 @@
         <DCCReference Include="libavutil\rational.pas"/>
         <DCCReference Include="libavutil\avutil.opt.pas"/>
         <DCCReference Include="libavutil\avutil.samplefmt.pas"/>
+        <DCCReference Include="libavformat\avformat.pas"/>
+        <DCCReference Include="libavformat\avio.pas"/>
+        <DCCReference Include="libavfilter\avfilter.pas"/>
+        <DCCReference Include="libavfilter\avfiltergraph.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
